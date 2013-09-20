@@ -1,0 +1,34 @@
+cmake_minimum_required (VERSION 2.8)
+
+project (CommonCode)
+
+# These headers need to go through Qt's MOC compiler
+set( QOBJECT_HEADERS    
+    cafMessagePanel.h
+    )
+
+qt4_wrap_cpp( MOC_FILES_CPP ${QOBJECT_HEADERS} )
+
+add_library( ${PROJECT_NAME}
+	cafEffectCache.cpp
+	cafEffectCache.h
+	cafEffectGenerator.cpp
+	cafEffectGenerator.h
+	cafLog.cpp
+	cafLog.h
+	cafMessagePanel.cpp
+	cafMessagePanel.h
+	cafMouseState.cpp
+	cafMouseState.h
+	cafUtils.cpp
+	cafUtils.h
+	cvfStructGrid.cpp
+	cvfStructGrid.h
+	
+	
+	cvfStructGridGeometryGenerator.cpp
+	cvfStructGridGeometryGenerator.h
+	cvfStructGridScalarDataAccess.h
+
+    ${MOC_FILES_CPP}
+)
