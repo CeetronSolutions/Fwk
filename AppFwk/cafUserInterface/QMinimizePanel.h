@@ -1,9 +1,9 @@
 //##################################################################################################
 //
-//   Custom Visualization Core library
-//   Copyright (C) 2011-2013 Ceetron AS
-//
-//   This library may be used under the terms of either the GNU General Public License or
+//   QMinimizePanel
+//   Copyright (C) 2017 Ceetron Solutions AS
+//  
+//   This class may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
 //
 //   GNU General Public License Usage
@@ -34,64 +34,52 @@
 //
 //##################################################################################################
 
-
 #pragma once
 
-#include <QString>
 #include <QWidget>
-#include <QPointer>
 
-class QVBoxLayout;
+class QFrame;
+class QLabel;
+class QPushButton;
 
-
-#include <QScrollArea>
-
-//--------------------------------------------------------------------------------------------------
-/// 
-//--------------------------------------------------------------------------------------------------
-class QVerticalScrollArea : public QScrollArea
+//==================================================================================================
+//
+//
+//
+//==================================================================================================
+class QMinimizePanel : public QWidget
 {
     Q_OBJECT
 public:
-    explicit QVerticalScrollArea(QWidget* parent = 0);
-    virtual bool eventFilter(QObject* object, QEvent* event) override;
-};
+    explicit QMinimizePanel(QWidget* parent=0);
+    explicit QMinimizePanel(const QString &title, QWidget* parent=0);
+    ~QMinimizePanel();
 
+    QFrame*         contentFrame() { return m_contentFrame; }  
+    void            setTitle (const QString& title);
+    QString         title() const;
 
-namespace caf
-{
-
-class PdmObjectHandle;
-class PdmUiObjectEditorHandle;
-
-//==================================================================================================
-/// 
-//==================================================================================================
-
-class PdmUiPropertyView : public QWidget
-{
-    Q_OBJECT
-public:
-    PdmUiPropertyView(QWidget* parent = 0, Qt::WindowFlags f = 0);
-    ~PdmUiPropertyView();
-
-    void                        setUiConfigurationName(QString uiConfigName);
-    PdmObjectHandle*            currentObject();
-
-    virtual QSize               sizeHint() const override;
+    virtual QSize   sizeHint() const override;
 
 public slots:
-    void                        showProperties(caf::PdmObjectHandle* object); // Signal/Slot system needs caf:: prefix in some cases
+    void            setExpanded(bool isExpanded);
+    void            toggleExpanded();
+
+signals:
+    void            expandedChanged(bool isExpanded);
+
+public:
+    virtual QSize   minimumSizeHint() const override;
+
+protected:
+    QFrame*         m_titleFrame;
+    QLabel*         m_titleLabel;
+    QPushButton*    m_collapseButton;
+    QFrame*         m_contentFrame;
+
+    virtual void    resizeEvent(QResizeEvent *) override;
+    virtual bool    event(QEvent* event) override; // To catch QEvent::LayoutRequest
 
 private:
-    PdmUiObjectEditorHandle*    m_currentObjectView; 
-    QString                     m_uiConfigName;
-    
-    QPointer<QVBoxLayout>       m_placeHolderLayout;
-    QPointer<QWidget>           m_placeholder;
+    void            initialize(const QString &title);
 };
-
-
-
-} // End of namespace caf
-
