@@ -1,7 +1,6 @@
 //##################################################################################################
 //
-//   Custom Visualization Core library
-//   Copyright (C) 2017 Ceetron Solutions AS
+//   Copyright (C) Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -34,43 +33,26 @@
 //
 //##################################################################################################
 
-
 #pragma once
 
-#include "cvfBase.h"
-#include "cvfArray.h"
+namespace caf 
+{
 
-#include <vector>
-
-
-class QColor;
-
-
-namespace caf {
-
-//==================================================================================================
-//
-// 
-//
-//==================================================================================================
-class ColorTable
+class PdmUiModelChangeDetector
 {
 public:
-    explicit ColorTable(const std::vector<cvf::Color3ub>& colors);
+    static PdmUiModelChangeDetector* instance();
 
-    cvf::Color3f        cycledColor3f(size_t itemIndex) const;
-    cvf::Color3ub       cycledColor3ub(size_t itemIndex) const;
-    QColor              cycledQColor(size_t itemIndex) const;
+    void setModelChanged();
+    void reset();
+    bool isModelChanged() const;
 
-    cvf::Color3ubArray  color3ubArray() const;
-    cvf::Color3fArray   color3fArray() const;
-
-    size_t              size() const;
-
-    static cvf::Color3ub        fromQColor(const QColor& color);
-    static cvf::Color3ubArray   interpolateColorArray(const cvf::Color3ubArray& colorArray, size_t targetColorCount); 
 private:
-    const std::vector<cvf::Color3ub> m_colors;
+    PdmUiModelChangeDetector();
+
+private:
+    bool m_isModelChanged;
 };
 
-}
+} // End of namespace caf
+
