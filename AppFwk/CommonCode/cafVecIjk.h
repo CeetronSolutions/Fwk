@@ -1,7 +1,7 @@
 //##################################################################################################
 //
 //   Custom Visualization Core library
-//   Copyright (C) 2015- Ceetron Solutions AS
+//   Copyright (C) 2017 Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -37,36 +37,23 @@
 
 #pragma once
 
-#include <QDialog>
-#include <QDialogButtonBox>
+#include <array>
 
 namespace caf
 {
 
-class PdmObject;
-class PdmUiPropertyView;
-
-
-class PdmUiPropertyViewDialog : public QDialog
+class VecIjk
 {
 public:
-    PdmUiPropertyViewDialog(QWidget* parent, PdmObject* object, const QString& windowTitle, const QString& uiConfigName);
-    PdmUiPropertyViewDialog(QWidget* parent, PdmObject* object, const QString& windowTitle, const QString& uiConfigName, const QDialogButtonBox::StandardButtons& standardButtons);
-    ~PdmUiPropertyViewDialog();
+    VecIjk(size_t i, size_t j, size_t k);
 
-    QDialogButtonBox* dialogButtonBox();
-
-private:
-    void initialize(QWidget* parent, PdmObject* object, const QString& windowTitle, const QString& uiConfigName);
-    void setupUi();
+    size_t i() const;
+    size_t j() const;
+    size_t k() const;
 
 private:
-    QString                m_windowTitle;
-    QString                m_uiConfigName;
-    PdmObject*             m_pdmObject;
-    PdmUiPropertyView*     m_pdmUiPropertyView;
-    QDialogButtonBox*      m_buttonBox;
+    std::array<size_t, 3> m_values;
 };
 
-} // End of namespace caf
+}
 
