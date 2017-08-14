@@ -1,7 +1,7 @@
 //##################################################################################################
 //
 //   Custom Visualization Core library
-//   Copyright (C) 2015- Ceetron Solutions AS
+//   Copyright (C) 2017 Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -37,36 +37,57 @@
 
 #pragma once
 
-#include <QDialog>
-#include <QDialogButtonBox>
+#include "cafPdmUiFieldEditorHandle.h"
 
-namespace caf
+#include <QDateEdit>
+#include <QLabel>
+#include <QPointer>
+#include <QString>
+#include <QWidget>
+
+namespace caf 
 {
 
-class PdmObject;
-class PdmUiPropertyView;
-
-
-class PdmUiPropertyViewDialog : public QDialog
+//==================================================================================================
+/// 
+//==================================================================================================
+class PdmUiDateEditorAttribute : public PdmUiEditorAttribute
 {
 public:
-    PdmUiPropertyViewDialog(QWidget* parent, PdmObject* object, const QString& windowTitle, const QString& uiConfigName);
-    PdmUiPropertyViewDialog(QWidget* parent, PdmObject* object, const QString& windowTitle, const QString& uiConfigName, const QDialogButtonBox::StandardButtons& standardButtons);
-    ~PdmUiPropertyViewDialog();
+    QString dateFormat;
 
-    QDialogButtonBox* dialogButtonBox();
-
-private:
-    void initialize(QWidget* parent, PdmObject* object, const QString& windowTitle, const QString& uiConfigName);
-    void setupUi();
-
-private:
-    QString                m_windowTitle;
-    QString                m_uiConfigName;
-    PdmObject*             m_pdmObject;
-    PdmUiPropertyView*     m_pdmUiPropertyView;
-    QDialogButtonBox*      m_buttonBox;
+public:
+    PdmUiDateEditorAttribute()
+    {
+    }
 };
 
-} // End of namespace caf
+//--------------------------------------------------------------------------------------------------
+/// 
+//--------------------------------------------------------------------------------------------------
+class PdmUiDateEditor : public PdmUiFieldEditorHandle
+{
+    Q_OBJECT
+    CAF_PDM_UI_FIELD_EDITOR_HEADER_INIT;
 
+public:
+    PdmUiDateEditor()          {} 
+    virtual ~PdmUiDateEditor() {} 
+
+protected:
+    virtual QWidget*    createEditorWidget(QWidget * parent);
+    virtual QWidget*    createLabelWidget(QWidget * parent);
+    virtual void        configureAndUpdateUi(const QString& uiConfigName);
+
+protected slots:
+    void                slotEditingFinished();
+
+private:
+    QPointer<QDateEdit>      m_dateEdit;
+    QPointer<QLabel>         m_label;
+
+    PdmUiDateEditorAttribute m_attributes;
+};
+
+
+} // end namespace caf

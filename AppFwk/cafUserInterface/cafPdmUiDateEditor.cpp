@@ -1,7 +1,7 @@
 //##################################################################################################
 //
 //   Custom Visualization Core library
-//   Copyright (C) 2015- Ceetron Solutions AS
+//   Copyright (C) 2017 Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -35,93 +35,97 @@
 //##################################################################################################
 
 
-#include "cafPdmUiPropertyViewDialog.h"
+#include "cafPdmUiDateEditor.h"
 
+#include "cafFactory.h"
+#include "cafPdmField.h"
 #include "cafPdmObject.h"
-#include "cafPdmUiPropertyView.h"
+#include "cafPdmUiDefaultObjectEditor.h"
+#include "cafPdmUiFieldEditorHandle.h"
+#include "cafPdmUiOrdering.h"
+#include "cafSelectionManager.h"
 
-#include <QVBoxLayout>
+#include <QApplication>
+#include <QDate>
+#include <QGridLayout>
+#include <QIntValidator>
+#include <QLabel>
+#include <QLineEdit>
+#include <QMainWindow>
+#include <QMessageBox>
+#include <QPalette>
+#include <QStatusBar>
+#include <QString>
 
 
 namespace caf
 {
 
+CAF_PDM_UI_FIELD_EDITOR_SOURCE_INIT(PdmUiDateEditor);
+
 
 //--------------------------------------------------------------------------------------------------
 /// 
 //--------------------------------------------------------------------------------------------------
-PdmUiPropertyViewDialog::PdmUiPropertyViewDialog(QWidget* parent, PdmObject* object, const QString& windowTitle, const QString& uiConfigName)
+void PdmUiDateEditor::configureAndUpdateUi(const QString& uiConfigName)
 {
-    m_buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    CAF_ASSERT(!m_dateEdit.isNull());
 
-    initialize(parent, object, windowTitle, uiConfigName);
+    QIcon ic = field()->uiIcon(uiConfigName);
+    if (!ic.isNull())
+    {
+        m_label->setPixmap(ic.pixmap(ic.actualSize(QSize(64, 64))));
+    }
+    else
+    {
+        m_label->setText(field()->uiName(uiConfigName));
+    }
+
+    m_label->setEnabled(!field()->isUiReadOnly(uiConfigName));
+
+    m_dateEdit->setEnabled(!field()->isUiReadOnly(uiConfigName));
+
+    caf::PdmUiObjectHandle* uiObject = uiObj(field()->fieldHandle()->ownerObject());
+    if (uiObject)
+    {
+        uiObject->editorAttribute(field()->fieldHandle(), uiConfigName, &m_attributes);
+    }
+
+    if (!m_attributes.dateFormat.isEmpty())
+    {
+        m_dateEdit->setDisplayFormat(m_attributes.dateFormat);
+    }
+
+    m_dateEdit->setDate(field()->uiValue().toDate());
+}
+
+
+//--------------------------------------------------------------------------------------------------
+/// 
+//--------------------------------------------------------------------------------------------------
+QWidget* PdmUiDateEditor::createEditorWidget(QWidget* parent)
+{
+    m_dateEdit = new QDateEdit(parent);
+    m_dateEdit->setCalendarPopup(true);
+    connect(m_dateEdit, SIGNAL(editingFinished()), this, SLOT(slotEditingFinished()));
+    return m_dateEdit;
 }
 
 //--------------------------------------------------------------------------------------------------
 /// 
 //--------------------------------------------------------------------------------------------------
-PdmUiPropertyViewDialog::PdmUiPropertyViewDialog(QWidget* parent, PdmObject* object, const QString& windowTitle,
-                                                 const QString& uiConfigName, const QDialogButtonBox::StandardButtons& standardButtons)
+QWidget* PdmUiDateEditor::createLabelWidget(QWidget* parent)
 {
-    m_buttonBox = new QDialogButtonBox(standardButtons);
-
-    initialize(parent, object, windowTitle, uiConfigName);
+    m_label = new QLabel(parent);
+    return m_label;
 }
 
 //--------------------------------------------------------------------------------------------------
 /// 
 //--------------------------------------------------------------------------------------------------
-PdmUiPropertyViewDialog::~PdmUiPropertyViewDialog()
+void PdmUiDateEditor::slotEditingFinished()
 {
-    m_pdmUiPropertyView->showProperties(NULL);
+    this->setValueToField(m_dateEdit->date());
 }
 
-//--------------------------------------------------------------------------------------------------
-/// 
-//--------------------------------------------------------------------------------------------------
-QDialogButtonBox* PdmUiPropertyViewDialog::dialogButtonBox()
-{
-    return m_buttonBox;
-}
-
-//--------------------------------------------------------------------------------------------------
-/// 
-//--------------------------------------------------------------------------------------------------
-void PdmUiPropertyViewDialog::initialize(QWidget* parent, PdmObject* object, const QString& windowTitle,
-                                         const QString& uiConfigName)
-{
-    m_pdmObject = object;
-    m_windowTitle = windowTitle;
-    m_uiConfigName = uiConfigName;
-
-    setupUi();
-}
-
-//--------------------------------------------------------------------------------------------------
-/// 
-//--------------------------------------------------------------------------------------------------
-void PdmUiPropertyViewDialog::setupUi()
-{
-    setWindowTitle(m_windowTitle);
-
-    m_pdmUiPropertyView = new PdmUiPropertyView(this);
-    m_pdmUiPropertyView->setUiConfigurationName(m_uiConfigName);
-
-    QVBoxLayout* dialogLayout = new QVBoxLayout;
-    setLayout(dialogLayout);
-
-    dialogLayout->addWidget(m_pdmUiPropertyView);
-    m_pdmUiPropertyView->showProperties(m_pdmObject);
-
-    // Buttons
-    //CAF_ASSERT(m_buttonBox->buttons().size() > 0);
-
-    connect(m_buttonBox, SIGNAL(accepted()), this, SLOT(accept()));
-    connect(m_buttonBox, SIGNAL(rejected()), this, SLOT(reject()));
-
-    dialogLayout->addWidget(m_buttonBox);
-}
-
-
-} //End of namespace caf
-
+} // end namespace caf

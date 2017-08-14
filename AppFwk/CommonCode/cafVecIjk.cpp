@@ -1,7 +1,7 @@
 //##################################################################################################
 //
 //   Custom Visualization Core library
-//   Copyright (C) 2015- Ceetron Solutions AS
+//   Copyright (C) 2017 Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -34,39 +34,40 @@
 //
 //##################################################################################################
 
+#include "cafVecIjk.h"
 
-#pragma once
+namespace caf {
 
-#include <QDialog>
-#include <QDialogButtonBox>
-
-namespace caf
+//--------------------------------------------------------------------------------------------------
+/// 
+//--------------------------------------------------------------------------------------------------
+VecIjk::VecIjk(size_t i, size_t j, size_t k)
 {
+    m_values = { i, j, k };
+}
 
-class PdmObject;
-class PdmUiPropertyView;
-
-
-class PdmUiPropertyViewDialog : public QDialog
+//--------------------------------------------------------------------------------------------------
+/// 
+//--------------------------------------------------------------------------------------------------
+size_t VecIjk::i() const
 {
-public:
-    PdmUiPropertyViewDialog(QWidget* parent, PdmObject* object, const QString& windowTitle, const QString& uiConfigName);
-    PdmUiPropertyViewDialog(QWidget* parent, PdmObject* object, const QString& windowTitle, const QString& uiConfigName, const QDialogButtonBox::StandardButtons& standardButtons);
-    ~PdmUiPropertyViewDialog();
+    return m_values[0];
+}
 
-    QDialogButtonBox* dialogButtonBox();
+//--------------------------------------------------------------------------------------------------
+/// 
+//--------------------------------------------------------------------------------------------------
+size_t VecIjk::j() const
+{
+    return m_values[1];
+}
 
-private:
-    void initialize(QWidget* parent, PdmObject* object, const QString& windowTitle, const QString& uiConfigName);
-    void setupUi();
+//--------------------------------------------------------------------------------------------------
+/// 
+//--------------------------------------------------------------------------------------------------
+size_t VecIjk::k() const
+{
+    return m_values[2];
+}
 
-private:
-    QString                m_windowTitle;
-    QString                m_uiConfigName;
-    PdmObject*             m_pdmObject;
-    PdmUiPropertyView*     m_pdmUiPropertyView;
-    QDialogButtonBox*      m_buttonBox;
-};
-
-} // End of namespace caf
-
+}; //namespace caf
