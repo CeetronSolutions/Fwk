@@ -1,7 +1,7 @@
 //##################################################################################################
 //
 //   Custom Visualization Core library
-//   Copyright (C) 2011-2013 Ceetron AS
+//   Copyright (C) Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -33,65 +33,45 @@
 //   for more details.
 //
 //##################################################################################################
-
-
 #pragma once
 
-#include <QString>
-#include <QWidget>
+#include "cafSelectionChangedReceiver.h"
+#include "cafPdmUi3dObjectEditorHandle.h"
+
+#include <QObject>
 #include <QPointer>
+#include <QString>
 
-class QVBoxLayout;
-
-
-#include <QScrollArea>
-
-//--------------------------------------------------------------------------------------------------
-/// 
-//--------------------------------------------------------------------------------------------------
-class QVerticalScrollArea : public QScrollArea
-{
-    Q_OBJECT
-public:
-    explicit QVerticalScrollArea(QWidget* parent = nullptr);
-    bool eventFilter(QObject* object, QEvent* event) override;
-};
-
+#include <vector>
 
 namespace caf
 {
 
-class PdmObjectHandle;
-class PdmUiWidgetObjectEditorHandle;
-
 //==================================================================================================
 /// 
+///
+///
 //==================================================================================================
 
-class PdmUiPropertyView : public QWidget
+// Selected object 3D editor visualizer
+class PdmUiSelection3dEditorVisualizer : public QObject, caf::SelectionChangedReceiver
 {
     Q_OBJECT
 public:
-    PdmUiPropertyView(QWidget* parent = nullptr, Qt::WindowFlags f = nullptr);
-    ~PdmUiPropertyView() override;
+    PdmUiSelection3dEditorVisualizer(QWidget* ownerViewer);
+    ~PdmUiSelection3dEditorVisualizer() override; 
 
-    void                setUiConfigurationName(QString uiConfigName);
-    PdmObjectHandle*    currentObject();
+    void setConfigName(const QString& configName) { m_configName = configName; }
 
-    QSize               sizeHint() const override;
-
-public slots:
-    void                showProperties(caf::PdmObjectHandle* object); // Signal/Slot system needs caf:: prefix in some cases
+    void updateVisibleEditors();
 
 private:
-    PdmUiWidgetObjectEditorHandle* m_currentObjectView; 
-    QString                        m_uiConfigName;
-    
-    QPointer<QVBoxLayout>          m_placeHolderLayout;
-    QPointer<QWidget>              m_placeholder;
+    void onSelectionManagerSelectionChanged( const std::set<int>& changedSelectionLevels ) override;
+
+    std::vector< QPointer<PdmUi3dObjectEditorHandle> > m_active3DEditors;
+    QPointer<QWidget>                                  m_ownerViewer;
+    QString                                            m_configName;
 };
 
 
-
-} // End of namespace caf
-
+}

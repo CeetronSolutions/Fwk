@@ -1,7 +1,7 @@
 //##################################################################################################
 //
 //   Custom Visualization Core library
-//   Copyright (C) 2011-2013 Ceetron AS
+//   Copyright (C) Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -34,64 +34,39 @@
 //
 //##################################################################################################
 
+#include "cafPdmUi3dObjectEditorHandle.h"
 
-#pragma once
+//==================================================================================================
+/// 
+///
+///
+//==================================================================================================
+namespace caf 
+{
+//--------------------------------------------------------------------------------------------------
+/// 
+//--------------------------------------------------------------------------------------------------
+PdmUi3dObjectEditorHandle::PdmUi3dObjectEditorHandle()
+{
 
-#include <QString>
-#include <QWidget>
-#include <QPointer>
-
-class QVBoxLayout;
-
-
-#include <QScrollArea>
+}
 
 //--------------------------------------------------------------------------------------------------
 /// 
 //--------------------------------------------------------------------------------------------------
-class QVerticalScrollArea : public QScrollArea
-{
-    Q_OBJECT
-public:
-    explicit QVerticalScrollArea(QWidget* parent = nullptr);
-    bool eventFilter(QObject* object, QEvent* event) override;
-};
-
-
-namespace caf
+PdmUi3dObjectEditorHandle::~PdmUi3dObjectEditorHandle()
 {
 
-class PdmObjectHandle;
-class PdmUiWidgetObjectEditorHandle;
+}
 
-//==================================================================================================
-/// 
-//==================================================================================================
-
-class PdmUiPropertyView : public QWidget
+//--------------------------------------------------------------------------------------------------
+/// The viewer widget set here is provided by the PdmUiSelection3dEditorVisualizer and is expected 
+/// to be cast able to whatever is needed in subclasses.
+/// Not allowed to change. Should be constructor argument, but makes factory stuff difficult.
+//--------------------------------------------------------------------------------------------------
+void PdmUi3dObjectEditorHandle::setViewer(QWidget* ownerViewer)
 {
-    Q_OBJECT
-public:
-    PdmUiPropertyView(QWidget* parent = nullptr, Qt::WindowFlags f = nullptr);
-    ~PdmUiPropertyView() override;
-
-    void                setUiConfigurationName(QString uiConfigName);
-    PdmObjectHandle*    currentObject();
-
-    QSize               sizeHint() const override;
-
-public slots:
-    void                showProperties(caf::PdmObjectHandle* object); // Signal/Slot system needs caf:: prefix in some cases
-
-private:
-    PdmUiWidgetObjectEditorHandle* m_currentObjectView; 
-    QString                        m_uiConfigName;
-    
-    QPointer<QVBoxLayout>          m_placeHolderLayout;
-    QPointer<QWidget>              m_placeholder;
-};
-
-
-
-} // End of namespace caf
-
+    CAF_ASSERT(m_ownerViewer.isNull()); 
+    m_ownerViewer = ownerViewer;
+}
+}

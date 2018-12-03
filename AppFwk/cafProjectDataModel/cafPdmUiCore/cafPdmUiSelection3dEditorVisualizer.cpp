@@ -1,7 +1,7 @@
 //##################################################################################################
 //
 //   Custom Visualization Core library
-//   Copyright (C) 2011-2013 Ceetron AS
+//   Copyright (C) Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -34,90 +34,94 @@
 //
 //##################################################################################################
 
-#include "cafPdmUiObjectEditorHandle.h"
+#include "cafPdmUiSelection3dEditorVisualizer.h"
 
-#include "cafPdmUiObjectHandle.h"
-
-namespace caf
-{
-
-std::set<QPointer<PdmUiObjectEditorHandle>> PdmUiObjectEditorHandle::m_sRegisteredObjectEditors;
-
-//--------------------------------------------------------------------------------------------------
+//==================================================================================================
 /// 
-//--------------------------------------------------------------------------------------------------
-PdmUiObjectEditorHandle::PdmUiObjectEditorHandle()
+///
+///
+//==================================================================================================
+
+#include "cafSelectionManager.h"
+
+namespace caf 
 {
-    m_sRegisteredObjectEditors.insert(this);
+
+//--------------------------------------------------------------------------------------------------
+/// The ownerViewer will take over ownership of this class. The ownerViewer is also the viewer distributed to 
+/// the 3dEditors created by this class to make them know where to exist.
+//--------------------------------------------------------------------------------------------------
+PdmUiSelection3dEditorVisualizer::PdmUiSelection3dEditorVisualizer(QWidget* ownerViewer)
+    : m_ownerViewer(ownerViewer)
+{
+    this->setParent(ownerViewer); // Makes this owned by the viewer.
 }
 
 //--------------------------------------------------------------------------------------------------
 /// 
 //--------------------------------------------------------------------------------------------------
-PdmUiObjectEditorHandle::~PdmUiObjectEditorHandle()
+PdmUiSelection3dEditorVisualizer::~PdmUiSelection3dEditorVisualizer()
 {
-    m_sRegisteredObjectEditors.erase(this);
-}
-
-//--------------------------------------------------------------------------------------------------
-/// 
-//--------------------------------------------------------------------------------------------------
-void PdmUiObjectEditorHandle::setPdmObject(PdmObjectHandle* object)
-{
-    cleanupBeforeSettingPdmObject();
-
-    caf::PdmUiObjectHandle* uiObject = uiObj(object);
-    this->bindToPdmItem(uiObject);
-}
-
-//--------------------------------------------------------------------------------------------------
-/// 
-//--------------------------------------------------------------------------------------------------
-PdmObjectHandle* PdmUiObjectEditorHandle::pdmObject()
-{
-    PdmUiObjectHandle* uiObject = dynamic_cast<PdmUiObjectHandle*>(pdmItem());
-    if (uiObject)
+    for (auto editor: m_active3DEditors)
     {
-        return uiObject->objectHandle();
-    }
-    else
-    {
-        return nullptr;
+        delete editor;
     }
 }
 
 //--------------------------------------------------------------------------------------------------
 /// 
 //--------------------------------------------------------------------------------------------------
-const caf::PdmObjectHandle* PdmUiObjectEditorHandle::pdmObject() const
+void PdmUiSelection3dEditorVisualizer::updateVisibleEditors()
 {
-    const PdmUiItem* pdmItem = this->pdmItem();
-
-    const PdmUiObjectHandle* uiObject = dynamic_cast<const PdmUiObjectHandle*>(pdmItem);
-    if (uiObject)
+    for (auto editor: m_active3DEditors)
     {
-        return uiObject->objectHandle();
-    }
-    else
-    {
-        return nullptr;
+        if (editor) editor->updateUi();
     }
 }
 
 //--------------------------------------------------------------------------------------------------
-/// This function is intended to be called after an object has been created or deleted,
-/// to ensure all object editors are updated (including valueOptions and UI representation of objects)
+/// 
 //--------------------------------------------------------------------------------------------------
-void PdmUiObjectEditorHandle::updateUiAllObjectEditors()
+void PdmUiSelection3dEditorVisualizer::onSelectionManagerSelectionChanged( const std::set<int>& changedSelectionLevels )
 {
-    for (PdmUiObjectEditorHandle* objEditorHandle : m_sRegisteredObjectEditors)
+    if (!changedSelectionLevels.count(0)) return;
+
+    for (auto editor: m_active3DEditors)
     {
-        if (objEditorHandle != nullptr)
+        delete editor;
+    }
+
+    m_active3DEditors.clear();
+
+    if (!m_ownerViewer) return;
+
+    std::set<PdmUiItem*> totalSelection;
+    for ( int selLevel: changedSelectionLevels )
+    {
+        std::vector<PdmUiItem*> items;
+        caf::SelectionManager::instance()->selectedItems(items, selLevel );
+        totalSelection.insert(items.begin(), items.end());
+    }
+
+    for (PdmUiItem* item: totalSelection)
+    {
+        QString editor3dTypeName = item->ui3dEditorTypeName(m_configName);
+        if (!editor3dTypeName.isEmpty())
         {
-            objEditorHandle->updateUi();
+            PdmObjectHandle* itemObject = dynamic_cast<PdmObjectHandle*>(item);
+            if (itemObject)
+            {
+                PdmUi3dObjectEditorHandle* editor3d = caf::Factory<PdmUi3dObjectEditorHandle, QString>::instance()->create(editor3dTypeName);
+                editor3d->setViewer(m_ownerViewer);
+                editor3d->setPdmObject(itemObject);
+                m_active3DEditors.push_back(editor3d);
+                editor3d->updateUi();
+            }
         }
     }
+
+    m_ownerViewer->update();
 }
 
-} //End of namespace caf
+} // end namespace caf
 

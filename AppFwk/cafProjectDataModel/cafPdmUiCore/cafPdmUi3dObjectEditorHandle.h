@@ -1,7 +1,7 @@
 //##################################################################################################
 //
 //   Custom Visualization Core library
-//   Copyright (C) 2011-2013 Ceetron AS
+//   Copyright (C) Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -33,65 +33,57 @@
 //   for more details.
 //
 //##################################################################################################
-
-
 #pragma once
 
-#include <QString>
+#include "cafPdmUiObjectEditorHandle.h"
+
+#include "cafFactory.h"
+
 #include <QWidget>
 #include <QPointer>
 
-class QVBoxLayout;
-
-
-#include <QScrollArea>
-
-//--------------------------------------------------------------------------------------------------
-/// 
-//--------------------------------------------------------------------------------------------------
-class QVerticalScrollArea : public QScrollArea
-{
-    Q_OBJECT
-public:
-    explicit QVerticalScrollArea(QWidget* parent = nullptr);
-    bool eventFilter(QObject* object, QEvent* event) override;
-};
-
-
+// PdmUiObjectEditorHandle -<| PdmUiWidgetObjectEditorHandle --<| PdmUiFormLayoutObjectEditor 
+//                         -<| PdmUi3dObjectEditorHandle
 namespace caf
 {
 
-class PdmObjectHandle;
-class PdmUiWidgetObjectEditorHandle;
-
 //==================================================================================================
-/// 
+/// Macros helping in development of PDM UI 3d editors
 //==================================================================================================
 
-class PdmUiPropertyView : public QWidget
+/// CAF_PDM_UI_3D_OBJECT_EDITOR_HEADER_INIT assists the factory used when creating editors
+/// Place this in the header file inside the class definition of your PdmUiEditor
+
+#define CAF_PDM_UI_3D_OBJECT_EDITOR_HEADER_INIT \
+public: \
+    static QString uiEditorTypeName()
+
+/// CAF_PDM_UI_3D_OBJECT_EDITOR_SOURCE_INIT  implements editorTypeName() and registers the field editor in the field editor factory
+/// Place this in the cpp file, preferably above the constructor
+
+#define CAF_PDM_UI_3D_OBJECT_EDITOR_SOURCE_INIT(EditorClassName) \
+    QString EditorClassName::uiEditorTypeName() { return #EditorClassName; } \
+    CAF_FACTORY_REGISTER(caf::PdmUi3dObjectEditorHandle, EditorClassName, QString, EditorClassName::uiEditorTypeName())
+
+//==================================================================================================
+/// Abstract class for 3D editors editing complete PdmObjects
+//==================================================================================================
+
+class PdmUi3dObjectEditorHandle : public caf::PdmUiObjectEditorHandle
 {
-    Q_OBJECT
 public:
-    PdmUiPropertyView(QWidget* parent = nullptr, Qt::WindowFlags f = nullptr);
-    ~PdmUiPropertyView() override;
+    PdmUi3dObjectEditorHandle();
+    ~PdmUi3dObjectEditorHandle() override;
 
-    void                setUiConfigurationName(QString uiConfigName);
-    PdmObjectHandle*    currentObject();
+    void setViewer(QWidget* ownerViewer);
 
-    QSize               sizeHint() const override;
-
-public slots:
-    void                showProperties(caf::PdmObjectHandle* object); // Signal/Slot system needs caf:: prefix in some cases
+protected:
+    QWidget* ownerViewer() { return m_ownerViewer;}
 
 private:
-    PdmUiWidgetObjectEditorHandle* m_currentObjectView; 
-    QString                        m_uiConfigName;
-    
-    QPointer<QVBoxLayout>          m_placeHolderLayout;
-    QPointer<QWidget>              m_placeholder;
+
+    QPointer<QWidget>                   m_ownerViewer;
 };
 
-
-
-} // End of namespace caf
+}
 
