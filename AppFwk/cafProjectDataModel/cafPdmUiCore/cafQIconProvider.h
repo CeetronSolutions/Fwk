@@ -1,7 +1,7 @@
 //##################################################################################################
 //
 //   Custom Visualization Core library
-//   Copyright (C) 2011-2013 Ceetron AS
+//   Copyright (C) 2019- Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -33,77 +33,41 @@
 //   for more details.
 //
 //##################################################################################################
-
-
 #pragma once
 
-#include "cvfBase.h"
-#include "cvfObject.h"
-#include "cvfFont.h"
-#include "cvfGlyph.h"
-#include "cvfString.h"
-#include <map>
+#include <QIcon>
+#include <QPixmap>
+#include <QString>
 
-namespace cvf {
-
-class TextureImage;
-class Glyph;
-
-}
-
-namespace caf {
-
+namespace caf
+{
 //==================================================================================================
-//
-// Fixed atlas font class used to generate glyphs for a given character
-//
+/// Utility class to provide QIcons when required. Qt crashes if a non-empty QIcon is created
+/// ... without a GUI Application running. So create the icon on demand instead.
 //==================================================================================================
-class FixedAtlasFont : public cvf::Font
+class QIconProvider
 {
 public:
-    enum FontSize
-    {
-        POINT_SIZE_8,           // 8pt
-        POINT_SIZE_10,
-        POINT_SIZE_12,
-        POINT_SIZE_14,
-        POINT_SIZE_16,              // 16pt
-        POINT_SIZE_24,
-        POINT_SIZE_32
-    };
+    QIconProvider();
+    QIconProvider(const QString& iconResourceString);
+    QIconProvider(const QPixmap& pixmap);
+    QIconProvider(const QIconProvider& rhs);
+    QIconProvider& operator=(const QIconProvider& rhs);
 
-public:
-    explicit FixedAtlasFont(FontSize size);
-    ~FixedAtlasFont() override;
+    QIcon        icon() const;
+    virtual bool isNull() const;
+    void         setActive(bool active);
+    void         setIconResourceString(const QString& iconResourceString);
+    void         setPixmap(const QPixmap& pixmap);
 
-    const cvf::String& name() const override;
-    cvf::ref<cvf::Glyph> getGlyph(wchar_t character) override;
-    cvf::uint advance(wchar_t character, wchar_t nextCharacter) override;
-	bool isEmpty() override;
+protected:
+    virtual QIcon generateIcon() const;
+    static bool   isGuiApplication();
 
-private:
-    // Load/unload font
-    bool load(const char* name, size_t numGlyphs, 
-        const short* horizontalBearingsX, const short* horizontalBearingsY, 
-        const cvf::uint* horizontalAdvances, const cvf::uint* characterWidths, const cvf::uint* characterHeightss,
-        const size_t textureImageWidth, const size_t textureImageHeight,
-        const size_t numTextureImageDataBlockCount, const char** textureImageData);
-    void unload();
-
-private:
-    cvf::String             m_name;
-    size_t             m_numGlyphs;
-    std::vector<short> m_horizontalBearingsX;
-    std::vector<short> m_horizontalBearingsY;
-    std::vector<cvf::uint>  m_horizontalAdvances;
-    std::vector<cvf::uint>  m_characterWidths;
-    std::vector<cvf::uint>  m_characterHeights;
-
-    cvf::ref<cvf::TextureImage>  m_textureImage;
-
-    // Glyph cache
-    typedef std::map<size_t, cvf::ref<cvf::Glyph> > MapType;
-    MapType m_atlasMap;
+protected:
+    QString       m_iconResourceString;
+    QPixmap       m_iconPixmap;
+    mutable QIcon m_icon;
+    bool          m_active;
 };
-
-} // namespace cvf
+}
