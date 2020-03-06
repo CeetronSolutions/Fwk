@@ -1,7 +1,7 @@
 //##################################################################################################
 //
 //   Custom Visualization Core library
-//   Copyright (C) 2011-2013 Ceetron AS
+//   Copyright (C) Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -33,36 +33,28 @@
 //   for more details.
 //
 //##################################################################################################
-
-
 #pragma once
 
-#include <vector>
+#include "cafPdmCodeGenerator.h"
 
-class QString;
+namespace caf {
 
-namespace caf
-{
-
-class PdmObjectHandle;
-
-
+class PdmFieldHandle;
 
 //==================================================================================================
-//
-// Factory interface for creating PDM objects derived from PdmObjectHandle based on class name keyword
-//
+/// Python skeleton generator from Project Data Model
 //==================================================================================================
-class PdmObjectFactory
+class PdmPythonGenerator : public PdmCodeGenerator
 {
+    CAF_PDM_CODE_GENERATOR_HEADER_INIT;
 public:
+    QString generate(PdmObjectFactory* factory) const override;
+    static QString camelToSnakeCase(const QString& camelString);
+    static QString dataTypeString(const PdmFieldHandle* field, bool useStrForUnknownDataTypes);
 
-    virtual PdmObjectHandle* create(const QString& classNameKeyword) = 0;
-    virtual std::vector<QString> classKeywords() const = 0;
-protected:
-    PdmObjectFactory() {}
-    virtual ~PdmObjectFactory() {}
+    static QString pythonifyDataValue(const QString& dataValue);
+    static QString pythonHelpString(const QString& existingTooltip, const QString& keyword);
+
 };
 
-
-} //End of namespace caf
+}

@@ -1,7 +1,7 @@
 //##################################################################################################
 //
 //   Custom Visualization Core library
-//   Copyright (C) 2011-2013 Ceetron AS
+//   Copyright (C) Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -33,36 +33,44 @@
 //   for more details.
 //
 //##################################################################################################
-
-
 #pragma once
 
+#include <QString>
 #include <vector>
 
-class QString;
+class QTextStream;
 
-namespace caf
-{
+namespace caf {
 
-class PdmObjectHandle;
-
-
-
-//==================================================================================================
-//
-// Factory interface for creating PDM objects derived from PdmObjectHandle based on class name keyword
-//
-//==================================================================================================
-class PdmObjectFactory
+class PdmScriptIOMessages
 {
 public:
+    PdmScriptIOMessages()
+        : m_currentLineNumber( 1 )
+    {
+    }
 
-    virtual PdmObjectHandle* create(const QString& classNameKeyword) = 0;
-    virtual std::vector<QString> classKeywords() const = 0;
-protected:
-    PdmObjectFactory() {}
-    virtual ~PdmObjectFactory() {}
+    enum MessageType
+    {
+        MESSAGE_WARNING,
+        MESSAGE_ERROR
+    };
+
+    void addWarning( const QString& message );
+    void addError( const QString& message );
+
+    void skipWhiteSpaceWithLineNumberCount( QTextStream& inputStream );
+    void skipLineWithLineNumberCount( QTextStream& inputStream );
+
+    QChar readCharWithLineNumberCount( QTextStream& inputStream );
+    QChar peekNextChar( QTextStream& inputStream );
+
+    QString                                      currentCommand;
+    QString                                      currentArgument;
+    std::vector<std::pair<MessageType, QString>> m_messages;
+
+private:
+    int m_currentLineNumber;
 };
 
-
-} //End of namespace caf
+}
