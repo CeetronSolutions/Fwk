@@ -33,95 +33,94 @@
 //   for more details.
 //
 //##################################################################################################
-#include "cafPdmFieldScriptability.h"
-
-#include "cafPdmFieldHandle.h"
-#include "cafPdmPythonGenerator.h"
+#include "cafPdmScriptResponse.h"
 
 using namespace caf;
 
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-PdmFieldScriptability::PdmFieldScriptability( caf::PdmFieldHandle* owner, const QString& scriptFieldName, bool giveOwnership )
+PdmScriptResponse::PdmScriptResponse( Status status, const QString& message )
+    : m_status( COMMAND_OK )
 {
-    m_IOWriteable     = true;
-    m_owner           = owner;
-    m_scriptFieldName = scriptFieldName;
-    owner->addCapability( this, giveOwnership );
+    updateStatus( status, message );
 }
 
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-PdmFieldScriptability::~PdmFieldScriptability()
-{
-}
-
-//--------------------------------------------------------------------------------------------------
-///
-//--------------------------------------------------------------------------------------------------
-const QString PdmFieldScriptability::scriptFieldName() const
-{
-    return m_scriptFieldName;
-}
-
-//--------------------------------------------------------------------------------------------------
-///
-//--------------------------------------------------------------------------------------------------
-bool PdmFieldScriptability::isIOWriteable() const
-{
-    return m_IOWriteable;
-}
-
-//--------------------------------------------------------------------------------------------------
-///
-//--------------------------------------------------------------------------------------------------
-void PdmFieldScriptability::setIOWriteable( bool writeable )
-{
-    m_IOWriteable = writeable;
-}
-
-//--------------------------------------------------------------------------------------------------
-/// Empty default implementation that doesn't offer any script IO for the field
-//--------------------------------------------------------------------------------------------------
-void PdmFieldScriptability::readFromField( QTextStream& outputStream,
-                                           bool         quoteStrings /*= true*/,
-                                           bool         quoteNonBuiltins /*= false*/ ) const
-{
-}
-
-//--------------------------------------------------------------------------------------------------
-/// Empty default implementation that doesn't offer any script IO for the field
-//--------------------------------------------------------------------------------------------------
-void PdmFieldScriptability::writeToField( QTextStream&              inputStream,
-                                          caf::PdmObjectFactory*    objectFactory,
-                                          caf::PdmScriptIOMessages* errorMessageContainer,
-                                          bool                      stringsAreQuoted /*= true*/,
-                                          caf::PdmObjectHandle*     existingObjectsRoot /*= nullptr*/ )
+PdmScriptResponse::PdmScriptResponse( PdmObject* ok_result )
+    : m_status( COMMAND_OK )
+    , m_result( ok_result )
 {
 }
 
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-void PdmFieldScriptability::addToField( caf::PdmFieldHandle* field, const QString& fieldName )
+PdmScriptResponse::Status PdmScriptResponse::status() const
 {
-    if ( field->template capability<PdmFieldScriptability>() == nullptr )
+    return m_status;
+}
+
+//--------------------------------------------------------------------------------------------------
+/// The resulting message is sent in HTTP metadata and must not have any newlines.
+//--------------------------------------------------------------------------------------------------
+QString PdmScriptResponse::sanitizedResponseMessage() const
+{
+    QString completeMessage = m_messages.join( ";;" );
+    completeMessage.replace( '\n', ";;" );
+    return completeMessage;
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+QStringList PdmScriptResponse::messages() const
+{
+    return m_messages;
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+PdmObject* PdmScriptResponse::result() const
+{
+    return m_result.get();
+}
+
+//--------------------------------------------------------------------------------------------------
+/// Takes ownership of the result object
+//--------------------------------------------------------------------------------------------------
+void PdmScriptResponse::setResult( PdmObject* result )
+{
+    m_result.reset( result );
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+void PdmScriptResponse::updateStatus( Status status, const QString& message )
+{
+    m_status = std::max( m_status, status );
+    if ( !message.isEmpty() )
     {
-        new PdmFieldScriptability( field, fieldName, true );
+        m_messages.push_back( QString( "%1: %2" ).arg( statusLabel( status ) ).arg( message ) );
     }
 }
 
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-QString PdmFieldScriptability::helpString( const QString& existingTooltip, const QString& keyword )
+QString PdmScriptResponse::statusLabel( Status status )
 {
-    QString snake_case = caf::PdmPythonGenerator::camelToSnakeCase( keyword );
-
-    QString helpString = QString( "Available through python/rips as the attribute '%1'" ).arg( snake_case );
-
-    if ( !existingTooltip.isEmpty() ) return existingTooltip + "\n\n" + helpString;
-    return helpString;
+    switch ( status )
+    {
+        case COMMAND_WARNING:
+            return "Warning";
+        case COMMAND_ERROR:
+            return "Error";
+        default:
+            return "";
+    }
 }
