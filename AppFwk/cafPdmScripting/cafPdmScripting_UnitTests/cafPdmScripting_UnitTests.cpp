@@ -33,35 +33,22 @@
 //   for more details.
 //
 //##################################################################################################
-#pragma once
 
-#include <QString>
+#include "gtest/gtest.h"
+#include <iostream>
+#include <stdio.h>
+#include <string>
 
-#include <map>
-
-namespace caf
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+int main( int argc, char** argv )
 {
-class PdmObject;
+    testing::InitGoogleTest( &argc, argv );
+    int result = RUN_ALL_TESTS();
 
-//==================================================================================================
-/// Static register for object scriptability.
-//==================================================================================================
-class PdmObjectScriptabilityRegister
-{
-public:
-    static void    registerScriptClassNameAndComment( const QString& classKeyword,
-                                                      const QString& scriptClassName,
-                                                      const QString& scriptClassComment );
-    static QString scriptClassNameFromClassKeyword( const QString& classKeyword );
-    static QString classKeywordFromScriptClassName( const QString& scriptClassName );
-    static QString scriptClassComment( const QString& classKeyword );
+    char text[5];
+    std::cin.getline( text, 5 );
 
-    static bool isScriptable( const caf::PdmObject* object );
-
-private:
-    static std::map<QString, QString> s_classKeywordToScriptClassName;
-    static std::map<QString, QString> s_scriptClassNameToClassKeyword;
-    static std::map<QString, QString> s_scriptClassComments;
-};
-
-} // namespace caf
+    return result;
+}

@@ -33,35 +33,45 @@
 //   for more details.
 //
 //##################################################################################################
-#pragma once
+#include "cafPdmFieldIOScriptabilityCvfColor3.h"
 
-#include <QString>
+#include <QColor>
 
-#include <map>
+using namespace caf;
 
-namespace caf
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+void PdmFieldScriptabilityIOHandler<cvf::Color3f>::writeToField(cvf::Color3f&             fieldValue,
+    QTextStream&              inputStream,
+    caf::PdmScriptIOMessages* errorMessageContainer,
+    bool                      stringsAreQuoted)
 {
-class PdmObject;
+    QString fieldStringValue;
+    PdmFieldScriptabilityIOHandler<QString>::writeToField(fieldStringValue,
+        inputStream,
+        errorMessageContainer,
+        stringsAreQuoted);
 
-//==================================================================================================
-/// Static register for object scriptability.
-//==================================================================================================
-class PdmObjectScriptabilityRegister
+    QColor qColor(fieldStringValue);
+    if (qColor.isValid())
+    {
+        fieldValue = cvf::Color3f(qColor.redF(), qColor.greenF(), qColor.blueF());
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+void PdmFieldScriptabilityIOHandler<cvf::Color3f>::readFromField(const cvf::Color3f& fieldValue,
+    QTextStream&        outputStream,
+    bool                quoteStrings,
+    bool                quoteNonBuiltin)
 {
-public:
-    static void    registerScriptClassNameAndComment( const QString& classKeyword,
-                                                      const QString& scriptClassName,
-                                                      const QString& scriptClassComment );
-    static QString scriptClassNameFromClassKeyword( const QString& classKeyword );
-    static QString classKeywordFromScriptClassName( const QString& scriptClassName );
-    static QString scriptClassComment( const QString& classKeyword );
+    QColor  qColor(fieldValue.rByte(), fieldValue.gByte(), fieldValue.bByte());
+    QString fieldStringValue = qColor.name();
+    PdmFieldScriptabilityIOHandler<QString>::readFromField(fieldStringValue, outputStream, quoteStrings);
+}
 
-    static bool isScriptable( const caf::PdmObject* object );
 
-private:
-    static std::map<QString, QString> s_classKeywordToScriptClassName;
-    static std::map<QString, QString> s_scriptClassNameToClassKeyword;
-    static std::map<QString, QString> s_scriptClassComments;
-};
 
-} // namespace caf

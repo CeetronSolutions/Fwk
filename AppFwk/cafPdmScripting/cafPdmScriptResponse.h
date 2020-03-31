@@ -35,33 +35,49 @@
 //##################################################################################################
 #pragma once
 
-#include <QString>
+#include "cafPdmObject.h"
+#include "cafPdmPointer.h"
 
-#include <map>
+#include <QString>
+#include <QStringList>
+
+#include <memory>
 
 namespace caf
 {
-class PdmObject;
-
 //==================================================================================================
-/// Static register for object scriptability.
+//
+// Command response which contains status and possibly a result
+//
 //==================================================================================================
-class PdmObjectScriptabilityRegister
+class PdmScriptResponse
 {
 public:
-    static void    registerScriptClassNameAndComment( const QString& classKeyword,
-                                                      const QString& scriptClassName,
-                                                      const QString& scriptClassComment );
-    static QString scriptClassNameFromClassKeyword( const QString& classKeyword );
-    static QString classKeywordFromScriptClassName( const QString& scriptClassName );
-    static QString scriptClassComment( const QString& classKeyword );
+    // Status in order of severity from ok to critical
+    enum Status
+    {
+        COMMAND_OK,
+        COMMAND_WARNING,
+        COMMAND_ERROR
+    };
 
-    static bool isScriptable( const caf::PdmObject* object );
+public:
+    PdmScriptResponse( Status status = COMMAND_OK, const QString& message = "" );
+    explicit PdmScriptResponse( PdmObject* ok_result );
+
+    Status      status() const;
+    QString     sanitizedResponseMessage() const;
+    QStringList messages() const;
+    PdmObject*  result() const;
+    void        setResult( PdmObject* result );
+    void        updateStatus( Status status, const QString& message );
 
 private:
-    static std::map<QString, QString> s_classKeywordToScriptClassName;
-    static std::map<QString, QString> s_scriptClassNameToClassKeyword;
-    static std::map<QString, QString> s_scriptClassComments;
-};
+    static QString statusLabel( Status status );
 
+private:
+    Status                     m_status;
+    QStringList                m_messages;
+    std::unique_ptr<PdmObject> m_result;
+};
 } // namespace caf

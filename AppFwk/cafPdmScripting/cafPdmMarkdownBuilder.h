@@ -33,35 +33,31 @@
 //   for more details.
 //
 //##################################################################################################
+
 #pragma once
 
-#include <QString>
-
-#include <map>
+#include "cafPdmObject.h"
 
 namespace caf
 {
-class PdmObject;
-
 //==================================================================================================
-/// Static register for object scriptability.
+///
 //==================================================================================================
-class PdmObjectScriptabilityRegister
+class PdmMarkdownBuilder
 {
 public:
-    static void    registerScriptClassNameAndComment( const QString& classKeyword,
-                                                      const QString& scriptClassName,
-                                                      const QString& scriptClassComment );
-    static QString scriptClassNameFromClassKeyword( const QString& classKeyword );
-    static QString classKeywordFromScriptClassName( const QString& scriptClassName );
-    static QString scriptClassComment( const QString& classKeyword );
+    static QString generateDocCommandObjects( std::vector<std::shared_ptr<const PdmObject>>& commandObjects );
+    static QString generateDocDataModelObjects( std::vector<std::shared_ptr<const PdmObject>>& dataModelObjects );
 
-    static bool isScriptable( const caf::PdmObject* object );
+    static std::vector<std::shared_ptr<const PdmObject>> createAllObjects( caf::PdmObjectFactory* factory );
 
 private:
-    static std::map<QString, QString> s_classKeywordToScriptClassName;
-    static std::map<QString, QString> s_scriptClassNameToClassKeyword;
-    static std::map<QString, QString> s_scriptClassComments;
+    struct AttributeItem
+    {
+        QString name;
+        QString description;
+        QString type;
+    };
 };
 
 } // namespace caf

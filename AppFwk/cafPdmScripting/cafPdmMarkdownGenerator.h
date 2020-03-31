@@ -33,35 +33,32 @@
 //   for more details.
 //
 //##################################################################################################
+
 #pragma once
 
-#include <QString>
-
-#include <map>
+#include "cafPdmCodeGenerator.h"
+#include "cafPdmObject.h"
 
 namespace caf
 {
-class PdmObject;
+class PdmFieldHandle;
 
 //==================================================================================================
-/// Static register for object scriptability.
+///
 //==================================================================================================
-class PdmObjectScriptabilityRegister
+class PdmMarkdownGenerator : public PdmCodeGenerator
 {
+    CAF_PDM_CODE_GENERATOR_HEADER_INIT;
+
+    struct AttributeItem
+    {
+        QString name;
+        QString description;
+        QString type;
+    };
+
 public:
-    static void    registerScriptClassNameAndComment( const QString& classKeyword,
-                                                      const QString& scriptClassName,
-                                                      const QString& scriptClassComment );
-    static QString scriptClassNameFromClassKeyword( const QString& classKeyword );
-    static QString classKeywordFromScriptClassName( const QString& scriptClassName );
-    static QString scriptClassComment( const QString& classKeyword );
-
-    static bool isScriptable( const caf::PdmObject* object );
-
-private:
-    static std::map<QString, QString> s_classKeywordToScriptClassName;
-    static std::map<QString, QString> s_scriptClassNameToClassKeyword;
-    static std::map<QString, QString> s_scriptClassComments;
+    QString generate( PdmObjectFactory* factory ) const override;
 };
 
 } // namespace caf

@@ -33,35 +33,39 @@
 //   for more details.
 //
 //##################################################################################################
-#pragma once
 
-#include <QString>
+#include "cafPdmMarkdownGenerator.h"
 
-#include <map>
+#include "cafPdmMarkdownBuilder.h"
+#include "cafPdmObjectScriptabilityRegister.h"
 
-namespace caf
+using namespace caf;
+
+CAF_PDM_CODE_GENERATOR_SOURCE_INIT( PdmMarkdownGenerator, "md" );
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+QString caf::PdmMarkdownGenerator::generate( PdmObjectFactory* factory ) const
 {
-class PdmObject;
+    QString     generatedCode;
+    QTextStream out( &generatedCode );
 
-//==================================================================================================
-/// Static register for object scriptability.
-//==================================================================================================
-class PdmObjectScriptabilityRegister
-{
-public:
-    static void    registerScriptClassNameAndComment( const QString& classKeyword,
-                                                      const QString& scriptClassName,
-                                                      const QString& scriptClassComment );
-    static QString scriptClassNameFromClassKeyword( const QString& classKeyword );
-    static QString classKeywordFromScriptClassName( const QString& scriptClassName );
-    static QString scriptClassComment( const QString& classKeyword );
+    std::vector<QString> classKeywords = factory->classKeywords();
 
-    static bool isScriptable( const caf::PdmObject* object );
+    std::vector<std::shared_ptr<const PdmObject>> scriptableObjects;
 
-private:
-    static std::map<QString, QString> s_classKeywordToScriptClassName;
-    static std::map<QString, QString> s_scriptClassNameToClassKeyword;
-    static std::map<QString, QString> s_scriptClassComments;
-};
+    {
+        std::vector<std::shared_ptr<const PdmObject>> allObjects = caf::PdmMarkdownBuilder::createAllObjects( factory );
+        for ( auto obj : allObjects )
+        {
+            if ( PdmObjectScriptabilityRegister::isScriptable( obj.get() ) )
+            {
+                scriptableObjects.push_back( obj );
+            }
+        }
+    }
+    out << caf::PdmMarkdownBuilder::generateDocDataModelObjects( scriptableObjects );
 
-} // namespace caf
+    return generatedCode;
+}

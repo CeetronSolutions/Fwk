@@ -35,33 +35,50 @@
 //##################################################################################################
 #pragma once
 
+#include "cafPdmChildArrayField.h"
+#include "cafPdmObjectCapability.h"
+#include "cafPdmObjectMethod.h"
+#include "cafPdmObjectScriptabilityRegister.h"
+
 #include <QString>
 
 #include <map>
+#include <memory>
+#include <vector>
+
+class QTextStream;
+
+#define CAF_PDM_InitScriptableObject( uiName, iconResourceName, toolTip, whatsThis ) \
+    CAF_PDM_InitObject( uiName, iconResourceName, toolTip, whatsThis );              \
+    caf::PdmObjectScriptabilityRegister::registerScriptClassNameAndComment( classKeyword(), classKeyword(), whatsThis );
+
+#define CAF_PDM_InitScriptableObjectWithNameAndComment( uiName, iconResourceName, toolTip, whatsThis, scriptClassName, scriptComment ) \
+    CAF_PDM_InitObject( uiName, iconResourceName, toolTip, whatsThis );                                                                \
+    caf::PdmObjectScriptabilityRegister::registerScriptClassNameAndComment( classKeyword(), scriptClassName, scriptComment );
 
 namespace caf
 {
 class PdmObject;
+class PdmObjectHandle;
+class PdmObjectFactory;
+class PdmScriptIOMessages;
 
 //==================================================================================================
-/// Static register for object scriptability.
+//
+//
+//
 //==================================================================================================
-class PdmObjectScriptabilityRegister
+class PdmObjectScriptability : public PdmObjectCapability
 {
 public:
-    static void    registerScriptClassNameAndComment( const QString& classKeyword,
-                                                      const QString& scriptClassName,
-                                                      const QString& scriptClassComment );
-    static QString scriptClassNameFromClassKeyword( const QString& classKeyword );
-    static QString classKeywordFromScriptClassName( const QString& scriptClassName );
-    static QString scriptClassComment( const QString& classKeyword );
+    PdmObjectScriptability( PdmObjectHandle* owner, bool giveOwnership );
 
-    static bool isScriptable( const caf::PdmObject* object );
+    ~PdmObjectScriptability() override;
+
+    void readFields( QTextStream& inputStream, PdmObjectFactory* objectFactory, PdmScriptIOMessages* errorMessageContainer );
+    void writeFields( QTextStream& outputStream ) const;
 
 private:
-    static std::map<QString, QString> s_classKeywordToScriptClassName;
-    static std::map<QString, QString> s_scriptClassNameToClassKeyword;
-    static std::map<QString, QString> s_scriptClassComments;
+    PdmObjectHandle* m_owner;
 };
-
 } // namespace caf

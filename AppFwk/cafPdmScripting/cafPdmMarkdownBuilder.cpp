@@ -33,68 +33,67 @@
 //   for more details.
 //
 //##################################################################################################
-#include "cafPdmPythonGenerator.h"
+
+#include "cafPdmMarkdownBuilder.h"
 
 #include "cafPdmChildArrayField.h"
 #include "cafPdmChildField.h"
 #include "cafPdmFieldScriptability.h"
 #include "cafPdmObject.h"
 #include "cafPdmObjectFactory.h"
-#include "cafPdmObjectMethod.h"
 #include "cafPdmObjectScriptabilityRegister.h"
 #include "cafPdmProxyValueField.h"
+#include "cafPdmPythonGenerator.h"
 #include "cafPdmXmlFieldHandle.h"
 
 #include <QRegularExpression>
 #include <QTextStream>
 
+#include <algorithm>
 #include <list>
 #include <memory>
 #include <set>
 
 using namespace caf;
 
-CAF_PDM_CODE_GENERATOR_SOURCE_INIT( PdmPythonGenerator, "py" );
-
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-QString PdmPythonGenerator::generate( PdmObjectFactory* factory ) const
+;
+QString caf::PdmMarkdownBuilder::generateDocDataModelObjects( std::vector<std::shared_ptr<const PdmObject>>& dataModelObjects )
 {
     QString     generatedCode;
     QTextStream out( &generatedCode );
 
-    std::vector<QString> classKeywords = factory->classKeywords();
-
-    std::vector<std::shared_ptr<PdmObject>> dummyObjects;
-    for ( QString classKeyword : classKeywords )
-    {
-        auto       objectHandle = factory->create( classKeyword );
-        PdmObject* object       = dynamic_cast<PdmObject*>( objectHandle );
-        CAF_ASSERT( object );
-
-        std::shared_ptr<PdmObject> sharedObject( object );
-        if ( PdmObjectScriptabilityRegister::isScriptable( sharedObject.get() ) )
-        {
-            dummyObjects.push_back( sharedObject );
-        }
-    }
-
     // Sort to make sure super classes get created before sub classes
-    std::sort( dummyObjects.begin(), dummyObjects.end(), []( std::shared_ptr<PdmObject> lhs, std::shared_ptr<PdmObject> rhs ) {
-        if ( lhs->inheritsClassWithKeyword( rhs->classKeyword() ) )
-        {
-            return false;
-        }
-        return lhs->classKeyword() < rhs->classKeyword();
-    } );
+    std::sort( dataModelObjects.begin(),
+               dataModelObjects.end(),
+               []( std::shared_ptr<const PdmObject> lhs, std::shared_ptr<const PdmObject> rhs ) {
+                   auto lhsStack = lhs->classInheritanceStack();
+                   auto rhsStack = rhs->classInheritanceStack();
+
+                   auto maxItems = std::min( lhsStack.size(), rhsStack.size() );
+                   auto lhsIt    = lhsStack.begin();
+                   auto rhsIt    = rhsStack.begin();
+                   for ( size_t i = 0; i < maxItems; i++ )
+                   {
+                       if ( *lhsIt != *rhsIt )
+                       {
+                           return ( *lhsIt < *rhsIt );
+                       }
+
+                       lhsIt++;
+                       rhsIt++;
+                   }
+                   return lhsStack.size() < rhsStack.size();
+               } );
 
     std::map<QString, std::map<QString, std::pair<QString, QString>>> classAttributesGenerated;
     std::map<QString, std::map<QString, QString>>                     classMethodsGenerated;
     std::map<QString, QString>                                        classCommentsGenerated;
 
     // First generate all attributes and comments to go into each object
-    for ( std::shared_ptr<PdmObject> object : dummyObjects )
+    for ( std::shared_ptr<const PdmObject> object : dataModelObjects )
     {
         const std::list<QString>& classInheritanceStack = object->classInheritanceStack();
 
@@ -116,7 +115,7 @@ QString PdmPythonGenerator::generate( PdmObjectFactory* factory ) const
                     auto scriptability = field->template capability<PdmFieldScriptability>();
                     if ( scriptability != nullptr )
                     {
-                        QString snake_field_name = camelToSnakeCase( scriptability->scriptFieldName() );
+                        QString snake_field_name = PdmPythonGenerator::camelToSnakeCase( scriptability->scriptFieldName() );
 
                         QString comment;
                         {
@@ -185,13 +184,13 @@ QString PdmPythonGenerator::generate( PdmObjectFactory* factory ) const
                                 QTextStream valueStream( &valueString );
                                 scriptability->readFromField( valueStream, true, true );
                                 if ( valueString.isEmpty() ) valueString = QString( "\"\"" );
-                                valueString = pythonifyDataValue( valueString );
+                                valueString = PdmPythonGenerator::pythonifyDataValue( valueString );
 
                                 QString fieldCode =
                                     QString( "        self.%1 = %2\n" ).arg( snake_field_name ).arg( valueString );
 
                                 QString fullComment =
-                                    QString( "%1 (%2): %3\n" ).arg( snake_field_name ).arg( dataType ).arg( comment );
+                                    QString( "%1|%2|%3" ).arg( snake_field_name ).arg( dataType ).arg( comment );
 
                                 classAttributesGenerated[field->ownerClass()][snake_field_name].first  = fieldCode;
                                 classAttributesGenerated[field->ownerClass()][snake_field_name].second = fullComment;
@@ -214,13 +213,13 @@ QString PdmPythonGenerator::generate( PdmObjectFactory* factory ) const
 
                             if ( pdmChildField )
                             {
-                                QString fieldCode = QString( "    def %1(self):\n%2\n        children = "
-                                                             "self.children(\"%3\", %4)\n        return children[0] if "
-                                                             "len(children) > 0 else None\n" )
-                                                        .arg( snake_field_name )
-                                                        .arg( fullComment )
-                                                        .arg( scriptability->scriptFieldName() )
-                                                        .arg( scriptDataType );
+                                QString fieldCode =
+                                    QString( "    def %1(self):\n%2\n        return "
+                                             "self.children(\"%3\", %4)[0] if len(self.children) > 0 else None\n" )
+                                        .arg( snake_field_name )
+                                        .arg( fullComment )
+                                        .arg( scriptability->scriptFieldName() )
+                                        .arg( scriptDataType );
                                 classMethodsGenerated[field->ownerClass()][snake_field_name] = fieldCode;
                             }
                             else
@@ -235,57 +234,6 @@ QString PdmPythonGenerator::generate( PdmObjectFactory* factory ) const
                             }
                         }
                     }
-
-                    for ( QString methodName : PdmObjectMethodFactory::instance()->registeredMethodNames( object.get() ) )
-                    {
-                        std::shared_ptr<PdmObjectMethod> method =
-                            PdmObjectMethodFactory::instance()->createMethod( object.get(), methodName );
-                        std::vector<PdmFieldHandle*> arguments;
-                        method->fields( arguments );
-
-                        QString methodComment = method->uiCapability()->uiWhatsThis();
-
-                        QString     snake_method_name = camelToSnakeCase( methodName );
-                        QStringList inputArgumentStrings;
-                        QStringList outputArgumentStrings;
-                        QStringList argumentComments;
-
-                        outputArgumentStrings.push_back( QString( "\"%1\"" ).arg( methodName ) );
-                        QString returnComment( "Data object" );
-                        if ( method->resultIsPersistent() )
-                        {
-                            returnComment = method->defaultResult()->xmlCapability()->classKeyword();
-                        }
-
-                        for ( auto field : arguments )
-                        {
-                            bool    isList        = field->xmlCapability()->isVectorField();
-                            QString defaultValue  = isList ? "[]" : "None";
-                            auto    scriptability = field->capability<PdmFieldScriptability>();
-                            auto    argumentName  = camelToSnakeCase( scriptability->scriptFieldName() );
-                            auto    dataType      = dataTypeString( field, false );
-                            if ( isList ) dataType = "List of " + dataType;
-                            inputArgumentStrings.push_back( QString( "%1=%2" ).arg( argumentName ).arg( defaultValue ) );
-                            outputArgumentStrings.push_back( QString( "%1=%1" ).arg( argumentName ) );
-                            argumentComments.push_back( QString( "%1 (%2): %3" )
-                                                            .arg( argumentName )
-                                                            .arg( dataType )
-                                                            .arg( field->uiCapability()->uiWhatsThis() ) );
-                        }
-                        QString fullComment = QString( "        \"\"\"\n        %1\n        Arguments:\n            "
-                                                       "%2\n        Returns:\n            %3\n        \"\"\"" )
-                                                  .arg( methodComment )
-                                                  .arg( argumentComments.join( "\n            " ) )
-                                                  .arg( returnComment );
-
-                        QString methodCode = QString( "    def %1(self, %2):\n%3\n        return "
-                                                      "self._call_pdm_method(%4)\n" )
-                                                 .arg( snake_method_name )
-                                                 .arg( inputArgumentStrings.join( ", " ) )
-                                                 .arg( fullComment )
-                                                 .arg( outputArgumentStrings.join( ", " ) );
-                        classMethodsGenerated[field->ownerClass()][snake_method_name] = methodCode;
-                    }
                 }
             }
         }
@@ -293,11 +241,12 @@ QString PdmPythonGenerator::generate( PdmObjectFactory* factory ) const
 
     // Write out classes
     std::set<QString> classesWritten;
-    for ( std::shared_ptr<PdmObject> object : dummyObjects )
+    for ( std::shared_ptr<const caf::PdmObject> object : dataModelObjects )
     {
         const std::list<QString>& classInheritanceStack = object->classInheritanceStack();
         std::list<QString>        scriptSuperClassNames;
 
+        size_t inheritanceLevel = 0;
         for ( auto it = classInheritanceStack.begin(); it != classInheritanceStack.end(); ++it )
         {
             const QString& classKeyword = *it;
@@ -307,81 +256,63 @@ QString PdmPythonGenerator::generate( PdmObjectFactory* factory ) const
             if ( !classesWritten.count( scriptClassName ) )
             {
                 QString classCode;
-                if ( scriptSuperClassNames.empty() )
-                {
-                    classCode = QString( "class %1:\n" ).arg( scriptClassName );
-                }
-                else
-                {
-                    classCode = QString( "class %1(%2):\n" ).arg( scriptClassName ).arg( scriptSuperClassNames.back() );
-                }
-                if ( !classCommentsGenerated[classKeyword].isEmpty() || !classAttributesGenerated[classKeyword].empty() )
-                {
-                    classCode += "    \"\"\"\n";
-                    if ( !classCommentsGenerated[classKeyword].isEmpty() )
-                    {
-                        if ( !classCommentsGenerated[classKeyword].isEmpty() )
-                        {
-                            classCode += QString( "    %1\n\n" ).arg( classCommentsGenerated[classKeyword] );
-                        }
-                    }
-                    if ( !classAttributesGenerated[classKeyword].empty() )
-                    {
-                        classCode += "    Attributes:\n";
-                        for ( auto keyWordValuePair : classAttributesGenerated[classKeyword] )
-                        {
-                            classCode += "        " + keyWordValuePair.second.second;
-                        }
-                    }
-                    classCode += "    \"\"\"\n";
-                }
-                classCode +=
-                    QString( "    __custom_init__ = None #: Assign a custom init routine to be run at __init__\n\n" );
 
-                classCode += QString( "    def __init__(self, pb2_object=None, channel=None):\n" );
+                {
+                    size_t headingLevel    = inheritanceLevel + 1;
+                    size_t maxHeadingLevel = 4;
+                    size_t minHeadingLevel = 2;
+                    headingLevel           = std::max( headingLevel, minHeadingLevel );
+                    headingLevel           = std::min( headingLevel, maxHeadingLevel );
+
+                    for ( size_t level = 0; level < headingLevel; level++ )
+                    {
+                        classCode += "#";
+                    }
+                }
+                classCode += QString( " %1\n" ).arg( scriptClassName );
+
                 if ( !scriptSuperClassNames.empty() )
                 {
-                    // Own attributes. This initializes a lot of attributes to None.
-                    // This means it has to be done before we set any values.
-                    for ( auto keyWordValuePair : classAttributesGenerated[classKeyword] )
-                    {
-                        classCode += keyWordValuePair.second.first;
-                    }
-                    // Parent constructor
-                    classCode +=
-                        QString( "        %1.__init__(self, pb2_object, channel)\n" ).arg( scriptSuperClassNames.back() );
+                    classCode += QString( "**Inherits %1**\n\n" ).arg( scriptSuperClassNames.back() );
                 }
 
-                classCode += QString( "        if %1.__custom_init__ is not None:\n" ).arg( scriptClassName );
-                classCode += QString( "            %1.__custom_init__(self, pb2_object=pb2_object, channel=channel)\n" )
-                                 .arg( scriptClassName );
-
-                for ( auto keyWordValuePair : classMethodsGenerated[classKeyword] )
+                if ( !classCommentsGenerated[classKeyword].isEmpty() || !classAttributesGenerated[classKeyword].empty() )
                 {
-                    classCode += "\n";
-                    classCode += keyWordValuePair.second;
-                    classCode += "\n";
+                    if ( !classCommentsGenerated[classKeyword].isEmpty() )
+                    {
+                        classCode += QString( "%1\n\n" ).arg( classCommentsGenerated[classKeyword] );
+                    }
+
+                    if ( !classAttributesGenerated[classKeyword].empty() )
+                    {
+                        classCode += "Attribute | Type | Description\n";
+                        classCode += "--------- | ---- | -----------\n";
+
+                        for ( auto keyWordValuePair : classAttributesGenerated[classKeyword] )
+                        {
+                            QStringList items = keyWordValuePair.second.second.split( "|" );
+                            if ( !items.empty() )
+                            {
+                                classCode += items[0];
+
+                                for ( int i = 1; i < items.size(); i++ )
+                                {
+                                    classCode += " | ";
+                                    classCode += items[i];
+                                }
+                                classCode += "\n";
+                            }
+                        }
+                    }
                 }
 
                 out << classCode << "\n";
                 classesWritten.insert( scriptClassName );
             }
             scriptSuperClassNames.push_back( scriptClassName );
+            inheritanceLevel++;
         }
     }
-    out << "def class_dict():\n";
-    out << "    classes = {}\n";
-    for ( QString classKeyword : classesWritten )
-    {
-        out << QString( "    classes['%1'] = %1\n" ).arg( classKeyword );
-    }
-    out << "    return classes\n\n";
-
-    out << "def class_from_keyword(class_keyword):\n";
-    out << "    all_classes = class_dict()\n";
-    out << "    if class_keyword in all_classes.keys():\n";
-    out << "        return all_classes[class_keyword]\n";
-    out << "    return None\n";
 
     return generatedCode;
 }
@@ -389,56 +320,97 @@ QString PdmPythonGenerator::generate( PdmObjectFactory* factory ) const
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-QString PdmPythonGenerator::camelToSnakeCase( const QString& camelString )
+std::vector<std::shared_ptr<const PdmObject>> caf::PdmMarkdownBuilder::createAllObjects( caf::PdmObjectFactory* factory )
 {
-    static QRegularExpression re1( "(.)([A-Z][a-z]+)" );
-    static QRegularExpression re2( "([a-z0-9])([A-Z])" );
+    std::vector<std::shared_ptr<const PdmObject>> objects;
 
-    QString snake_case = camelString;
-    snake_case.replace( re1, "\\1_\\2" );
-    snake_case.replace( re2, "\\1_\\2" );
-    return snake_case.toLower();
+    std::vector<QString> classKeywords = factory->classKeywords();
+    for ( QString classKeyword : classKeywords )
+    {
+        auto       objectHandle = factory->create( classKeyword );
+        PdmObject* object       = dynamic_cast<PdmObject*>( objectHandle );
+        CAF_ASSERT( object );
+
+        std::shared_ptr<PdmObject> sharedObject( object );
+        objects.push_back( sharedObject );
+    }
+
+    return objects;
 }
 
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-QString PdmPythonGenerator::dataTypeString( const PdmFieldHandle* field, bool useStrForUnknownDataTypes )
+QString caf::PdmMarkdownBuilder::generateDocCommandObjects( std::vector<std::shared_ptr<const PdmObject>>& commandObjects )
 {
-    auto xmlObj = field->capability<PdmXmlFieldHandle>();
+    QString     generatedText;
+    QTextStream out( &generatedText );
 
-    QString dataType = xmlObj->dataTypeName();
-
-    std::map<QString, QString> builtins = {{QString::fromStdString( typeid( double ).name() ), "float"},
-                                           {QString::fromStdString( typeid( float ).name() ), "float"},
-                                           {QString::fromStdString( typeid( int ).name() ), "int"},
-                                           {QString::fromStdString( typeid( QString ).name() ), "str"}};
-
-    bool foundBuiltin = false;
-    for ( auto builtin : builtins )
+    struct CommandDocData
     {
-        if ( dataType == builtin.first )
+        QString                    snakeClassName;
+        QString                    description;
+        std::vector<AttributeItem> parameters;
+    };
+
+    std::vector<CommandDocData> objs;
+
+    // First generate all attributes and comments to go into each object
+    for ( std::shared_ptr<const PdmObject> object : commandObjects )
+    {
+        QString snakeCommandName = PdmPythonGenerator::camelToSnakeCase( object->classKeyword() );
+
+        std::vector<AttributeItem>   attributes;
+        std::vector<PdmFieldHandle*> fields;
+        object->fields( fields );
+        for ( auto field : fields )
         {
-            dataType.replace( builtin.first, builtin.second );
-            foundBuiltin = true;
+            QString snake_field_name = PdmPythonGenerator::camelToSnakeCase( field->keyword() );
+            QString pythonDataType   = PdmPythonGenerator::dataTypeString( field, true );
+
+            QString nativeDataType = field->xmlCapability()->dataTypeName();
+            if ( nativeDataType.contains( "std::vector" ) )
+            {
+                pythonDataType = QString( "List of %1" ).arg( pythonDataType );
+            }
+
+            QString comment;
+            {
+                QStringList commentComponents;
+                commentComponents << field->capability<PdmUiFieldHandle>()->uiName();
+                commentComponents << field->capability<PdmUiFieldHandle>()->uiWhatsThis();
+                commentComponents.removeAll( QString( "" ) );
+                comment = commentComponents.join( ". " );
+            }
+
+            attributes.push_back( {snake_field_name, comment, pythonDataType} );
         }
+
+        QString comment = caf::PdmObjectScriptabilityRegister::scriptClassComment( object->classKeyword() );
+        objs.push_back( {snakeCommandName, comment, attributes} );
+        //        objectsAndAttributes[snakeCommandName] = attributes;
     }
 
-    if ( !foundBuiltin && useStrForUnknownDataTypes )
+    for ( auto object : objs )
     {
-        dataType = "str";
+        out << QString( "## %1\n\n" ).arg( object.snakeClassName );
+
+        if ( !object.description.isEmpty() )
+        {
+            out << object.description << "\n\n";
+        }
+
+        out << "Parameter | Type | Description\n";
+        out << "--------- | ---- | -----------\n";
+
+        for ( auto keyWordValuePair : object.parameters )
+        {
+            out << keyWordValuePair.name << " | ";
+            out << keyWordValuePair.type << " | ";
+            out << keyWordValuePair.description << "\n";
+        }
+        out << "\n";
     }
 
-    return dataType;
-}
-
-//--------------------------------------------------------------------------------------------------
-///
-//--------------------------------------------------------------------------------------------------
-QString PdmPythonGenerator::pythonifyDataValue( const QString& dataValue )
-{
-    QString outValue = dataValue;
-    outValue.replace( "false", "False" );
-    outValue.replace( "true", "True" );
-    return outValue;
+    return generatedText;
 }

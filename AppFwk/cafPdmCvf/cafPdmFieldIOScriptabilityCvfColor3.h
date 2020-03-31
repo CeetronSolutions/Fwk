@@ -33,35 +33,23 @@
 //   for more details.
 //
 //##################################################################################################
-#pragma once
+#include "cafPdmFieldIOScriptability.h"
 
-#include <QString>
+#include "cvfColor3.h"
 
-#include <map>
 
 namespace caf
 {
-class PdmObject;
-
-//==================================================================================================
-/// Static register for object scriptability.
-//==================================================================================================
-class PdmObjectScriptabilityRegister
+template <>
+struct PdmFieldScriptabilityIOHandler<cvf::Color3f>
 {
-public:
-    static void    registerScriptClassNameAndComment( const QString& classKeyword,
-                                                      const QString& scriptClassName,
-                                                      const QString& scriptClassComment );
-    static QString scriptClassNameFromClassKeyword( const QString& classKeyword );
-    static QString classKeywordFromScriptClassName( const QString& scriptClassName );
-    static QString scriptClassComment( const QString& classKeyword );
-
-    static bool isScriptable( const caf::PdmObject* object );
-
-private:
-    static std::map<QString, QString> s_classKeywordToScriptClassName;
-    static std::map<QString, QString> s_scriptClassNameToClassKeyword;
-    static std::map<QString, QString> s_scriptClassComments;
+    static void writeToField(cvf::Color3f&        fieldValue,
+        QTextStream&         inputStream,
+        PdmScriptIOMessages* errorMessageContainer,
+        bool                 stringsAreQuoted = true);
+    static void readFromField(const cvf::Color3f& fieldValue,
+        QTextStream&        outputStream,
+        bool                quoteStrings = true,
+        bool                quoteNonBuiltins = false);
 };
-
-} // namespace caf
+}
