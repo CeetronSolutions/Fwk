@@ -83,3 +83,61 @@ foreach(qtlib ${QT_LIBRARIES})
     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:${qtlib}>
             $<TARGET_FILE_DIR:${PROJECT_NAME}>)
 endforeach(qtlib)
+
+if(WIN32
+   AND TARGET Qt5::qmake
+   AND NOT TARGET Qt5::windeployqt)
+  get_target_property(_qt5_qmake_location Qt5::qmake IMPORTED_LOCATION)
+
+  execute_process(
+    COMMAND "${_qt5_qmake_location}" -query QT_INSTALL_PREFIX
+    RESULT_VARIABLE return_code
+    OUTPUT_VARIABLE qt5_install_prefix
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  set(imported_location "${qt5_install_prefix}/bin/windeployqt.exe")
+
+  message(STATUS "QMAKE: ${_qt5_qmake_location}")
+  message(STATUS "QTPREFIX: ${qt5_install_prefix}")
+
+  if(EXISTS ${imported_location})
+    add_executable(Qt5::windeployqt IMPORTED)
+
+    set_target_properties(Qt5::windeployqt PROPERTIES IMPORTED_LOCATION
+                                                      ${imported_location})
+  endif()
+endif()
+
+# TODO(wjwwood): find a way to make this optional or to run without "deploying"
+# the necessary dlls and stuff to the bin folder. see:
+# https://stackoverflow.com/questions/41193584/deploy-all-qt-dependencies-when-building#41199492
+if(TARGET Qt5::windeployqt)
+  # execute windeployqt in a tmp directory after build
+  add_custom_command(
+    TARGET cafTestApplication
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E remove_directory
+            "${CMAKE_CURRENT_BINARY_DIR}/windeployqt"
+    COMMAND set PATH=%PATH%$<SEMICOLON>${qt5_install_prefix}/bin
+    COMMAND
+      Qt5::windeployqt --no-compiler-runtime --no-system-d3d-compiler
+      --no-quick-import --no-translations --verbose 0 --dir
+      "${CMAKE_CURRENT_BINARY_DIR}/windeployqt"
+      "$<TARGET_FILE_DIR:cafTestApplication>/$<TARGET_FILE_NAME:cafTestApplication>"
+  )
+
+  # Qt DLLs
+  message(STATUS "Creating post build step for copying Qt DLLs")
+
+  # copy all files in the windeployqt directory to the installation directory
+  add_custom_command(
+    TARGET cafTestApplication
+    POST_BUILD
+    COMMAND
+      ${CMAKE_COMMAND} -E copy_directory
+      "${CMAKE_CURRENT_BINARY_DIR}/windeployqt/"
+      $<TARGET_FILE_DIR:cafTestApplication>)
+
+  # copy deployment directory during installation
+  install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/windeployqt/" DESTINATION .)
+endif()

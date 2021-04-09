@@ -13,6 +13,7 @@ if(MSVC AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 19.11))
 endif()
 
 set(VIZ_MODULES_FOLDER_NAME ../../../../Fwk/VizFwk)
+include(${VIZ_MODULES_FOLDER_NAME}/CMake/Utils/ceeDetermineCompilerFlags.cmake)
 add_subdirectory(${VIZ_MODULES_FOLDER_NAME}/LibCore LibCoreDir})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} # required for gtest-all.cpp
@@ -24,6 +25,12 @@ set(PROJECT_FILES cafHexInterpolatorBasicTest.cpp
 # add the executable
 add_executable(${PROJECT_NAME} ${PROJECT_FILES} gtest/gtest-all.cpp)
 
-target_link_libraries(${PROJECT_NAME} LibCore)
+# Setup our platform dependent libraries here, assuming they'll be the same for
+# all the tests
+if(UNIX AND NOT APPLE)
+  set(CEE_PLATFORM_LIBS rt pthread)
+endif()
+
+target_link_libraries(${PROJECT_NAME} LibCore ${CEE_PLATFORM_LIBS})
 
 source_group("" FILES ${PROJECT_FILES})
