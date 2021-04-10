@@ -59,6 +59,8 @@ for cmd in decoded:
             continue
         if cmd['file'].find('gtest-all.cpp') != -1:
             continue
+        if cmd['file'].find('gtest.h') != -1:
+            continue
 
     if 'command' in cmd or 'arguments' in cmd:
         if 'command' in cmd:
