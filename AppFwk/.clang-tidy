@@ -1,5 +1,5 @@
 ---
 Checks:            '-*,modernize-use-override,modernize-use-nullptr,modernize-deprecated-headers'
 WarningsAsErrors:  ''
-HeaderFilterRegex: '*AppFwk/*.h'
+HeaderFilterRegex: 'AppFwk/*.*$'
 FormatStyle:       'file'
