@@ -42,7 +42,7 @@ class Parent : public caf::PdmObject
 
 public:
     Parent();
-    ~Parent();
+    ~Parent() override;
 
     void doSome();
 

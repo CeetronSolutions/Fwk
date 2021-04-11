@@ -343,11 +343,11 @@
 //                                        deprecated; calling a marked function
 //                                        should generate a compiler warning
 
-#include <ctype.h>   // for isspace, etc
-#include <stddef.h>  // for ptrdiff_t
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cctype>   // for isspace, etc
+#include <cstddef>  // for ptrdiff_t
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <memory>
 #include <type_traits>
 
@@ -2473,7 +2473,7 @@ const char* StringFromGTestEnv(const char* flag, const char* default_val);
 #endif  // GTEST_INCLUDE_GTEST_INTERNAL_GTEST_PORT_H_
 
 #if GTEST_OS_LINUX
-# include <stdlib.h>
+# include <cstdlib>
 # include <sys/types.h>
 # include <sys/wait.h>
 # include <unistd.h>
@@ -2483,9 +2483,9 @@ const char* StringFromGTestEnv(const char* flag, const char* default_val);
 # include <stdexcept>
 #endif
 
-#include <ctype.h>
-#include <float.h>
-#include <string.h>
+#include <cctype>
+#include <cfloat>
+#include <cstring>
 #include <iomanip>
 #include <limits>
 #include <map>
@@ -2801,7 +2801,7 @@ GTEST_DISABLE_MSC_WARNINGS_POP_()  //  4251
 # include <mem.h>
 #endif
 
-#include <string.h>
+#include <cstring>
 #include <string>
 
 
@@ -9256,13 +9256,13 @@ class PolymorphicMatcher {
    public:
     explicit MonomorphicImpl(const Impl& impl) : impl_(impl) {}
 
-    virtual void DescribeTo(::std::ostream* os) const { impl_.DescribeTo(os); }
+    void DescribeTo(::std::ostream* os) const override { impl_.DescribeTo(os); }
 
-    virtual void DescribeNegationTo(::std::ostream* os) const {
+    void DescribeNegationTo(::std::ostream* os) const override {
       impl_.DescribeNegationTo(os);
     }
 
-    virtual bool MatchAndExplain(T x, MatchResultListener* listener) const {
+    bool MatchAndExplain(T x, MatchResultListener* listener) const override {
       return impl_.MatchAndExplain(x, listener);
     }
 
@@ -9531,7 +9531,7 @@ GTEST_DISABLE_MSC_WARNINGS_POP_()  //  4251 5046
 
 #endif  // GTEST_INCLUDE_GTEST_GTEST_MATCHERS_H_
 
-#include <stdio.h>
+#include <cstdio>
 #include <memory>
 
 namespace testing {
@@ -10312,7 +10312,7 @@ TEST_P(DerivedTest, DoesBlah) {
 #ifndef GTEST_INCLUDE_GTEST_INTERNAL_GTEST_PARAM_UTIL_H_
 #define GTEST_INCLUDE_GTEST_INTERNAL_GTEST_PARAM_UTIL_H_
 
-#include <ctype.h>
+#include <cctype>
 
 #include <cassert>
 #include <iterator>

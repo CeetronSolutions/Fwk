@@ -11,7 +11,7 @@ class TestObj : public caf::PdmObject
 public:
     TestObj();
 
-    ~TestObj();
+    ~TestObj() override;
 
     caf::PdmField<double> m_position;
 };
