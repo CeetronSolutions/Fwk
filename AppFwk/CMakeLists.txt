@@ -32,11 +32,19 @@ endif(CEE_USE_QT5)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
   set(CMAKE_CXX_FLAGS "-std=c++0x")
-endif()
-
-if(MSVC)
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  set(CMAKE_CXX_FLAGS "-std=c++0x")
+elseif(MSVC)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
 endif()
+
+# Use CMake to enforce C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(VIZ_MODULES_FOLDER_NAME ../VizFwk)
+include(${VIZ_MODULES_FOLDER_NAME}/CMake/Utils/ceeDetermineCompilerFlags.cmake)
 
 # Improvement Cmake 3.x If we have compiler requirements for this library, list
 # them target_compile_features(lib PUBLIC cxx_auto_type PRIVATE
@@ -52,6 +60,7 @@ add_subdirectory(cafCommand)
 add_subdirectory(cafCommandFeatures)
 add_subdirectory(cafUserInterface)
 add_subdirectory(cafPdmScripting)
+add_subdirectory(cafHexInterpolator)
 
 # executables
 add_subdirectory(cafTests/cafTestApplication)
@@ -65,6 +74,7 @@ add_subdirectory(cafProjectDataModel/cafPdmXml/cafPdmXml_UnitTests)
 add_subdirectory(cafProjectDataModel/cafProjectDataModel_UnitTests)
 add_subdirectory(cafUserInterface/cafUserInterface_UnitTests)
 add_subdirectory(cafPdmScripting/cafPdmScripting_UnitTests)
+add_subdirectory(cafHexInterpolator/cafHexInterpolator_UnitTest)
 
 # Organize sub-projects into folders on Visual Studio Turn on using solution
 # folders
