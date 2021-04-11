@@ -13,7 +13,7 @@ class Child : public caf::PdmObject
 public:
     Child();
 
-    ~Child();
+    ~Child() override;
 
     caf::PdmChildField<TestObj*> m_testObj;
 };

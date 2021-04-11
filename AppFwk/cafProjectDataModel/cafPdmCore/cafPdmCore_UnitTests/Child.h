@@ -10,7 +10,7 @@ class Child : public caf::PdmObjectHandle
 {
 public:
     Child();
-    ~Child();
+    ~Child() override;
 
     caf::PdmChildField<TestObj*> m_testObj;
 };

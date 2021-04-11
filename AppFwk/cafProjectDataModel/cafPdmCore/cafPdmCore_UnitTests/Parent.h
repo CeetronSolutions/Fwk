@@ -10,7 +10,7 @@ class Parent : public caf::PdmObjectHandle
 {
 public:
     Parent();
-    ~Parent();
+    ~Parent() override;
 
     void doSome();
 
