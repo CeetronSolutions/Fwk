@@ -8,7 +8,7 @@ class TestObj : public caf::PdmObjectHandle
 {
 public:
     TestObj();
-    ~TestObj();
+    ~TestObj() override;
 
     caf::PdmDataValueField<double> m_position;
 };
